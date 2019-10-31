@@ -2,6 +2,7 @@ import sys
 import pygame
 from bullet import Bullet
 from alien import Alien
+from time import sleep
 
 
 def check_evens(ship, bullets, settings, screen):
@@ -48,10 +49,11 @@ def update_screen(ship, bullets, aliens, settings, screen):
     pygame.display.flip()
 
 
-def update_bullets(bullets):
+def update_bullets(bullets, aliens, ship, settings, screen):
     for bullet in bullets.copy():
         if bullet.rect.bottom <= 0:
             bullets.remove(bullet)
+    check_bullet_aliens_collisions(aliens, bullets, ship, settings, screen)
 
 
 def create_fleet(settings, screen, aliens, ship):
@@ -86,13 +88,16 @@ def get_number_rows(settings, alien_height, ship_height) -> int:
     return int(avalible_space_y / (alien_height * 2))
 
 
-def update_aliens(settings, aliens):
+def update_aliens(settings, stats, aliens, ship, bullets, screen):
     """
     Проверяет, достиг ли флот края экрана,
     после чего обновляет позиции всех пришельцев во флоте.
     """
     check_fleet_edges(settings, aliens)
     aliens.update()
+
+    if pygame.sprite.spritecollideany(ship, aliens):
+        ship_hit(stats, aliens, bullets, ship, settings, screen)
 
 
 def change_fleet_directions(settings, aliens):
@@ -108,3 +113,24 @@ def check_fleet_edges(settings, aliens):
         if alien.check_edges():
             change_fleet_directions(settings, aliens)
             break
+
+
+def check_bullet_aliens_collisions(aliens, bullets, ship, settings, screen):
+    """Проверка попаданий в пришельцев."""
+    collisions = pygame.sprite.groupcollide(bullets, aliens, True, True)
+    if len(aliens) == 0:
+        bullets.empty()
+        create_fleet(settings, screen, aliens, ship)
+
+
+def ship_hit(stats, aliens, bullets, ship, settings, screen):
+    """Обрабатывает столкновение корабля с пришельцем."""
+    stats.ship_left -= 1
+
+    aliens.empty()
+    bullets.empty()
+
+    create_fleet(settings, screen, aliens, ship)
+    ship.center_ship()
+
+    sleep(0.5)
